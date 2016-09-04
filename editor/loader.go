@@ -1,12 +1,12 @@
 package editor
 
 import (
+	"github.com/jargv/pq/project"
 	"io/ioutil"
 	_ "log"
 	"os"
 	"os/user"
 	"path"
-	"prio/prio-cli/project"
 	"strings"
 )
 

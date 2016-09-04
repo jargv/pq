@@ -1,10 +1,10 @@
 package editor
 
 import (
+	"github.com/jargv/pq/project"
 	logpkg "log"
 	"os"
 	"path"
-	"prio/prio-cli/project"
 	"strings"
 
 	"github.com/nsf/termbox-go"

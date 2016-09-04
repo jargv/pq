@@ -1,7 +1,7 @@
 package main
 
 import (
-	"prio/prio-cli/editor"
+	"github.com/jargv/pq/editor"
 
 	"github.com/nsf/termbox-go"
 )
