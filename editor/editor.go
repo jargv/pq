@@ -20,6 +20,7 @@ type Editor struct {
 	loader
 	current int
 	cursor  int
+	message string
 }
 
 func (e *Editor) moveCurrent(new int) {
@@ -30,6 +31,7 @@ func (e *Editor) moveCurrent(new int) {
 
 func (e *Editor) Edit() error {
 	for {
+		clearMessage := true
 		switch event := e.frame(e.Project); true {
 		case event.Type == termbox.EventKey && event.Ch == 'q':
 			return nil
@@ -101,6 +103,13 @@ func (e *Editor) Edit() error {
 			e.current = 0
 			e.cursor = 0
 			e.Open(dir)
+		case event.Type == termbox.EventKey && event.Key == termbox.KeySpace:
+			clearMessage = false
+			if err := e.Save(); err != nil {
+				e.message = "couldn't save because: " + err.Error()
+			} else {
+				e.message = "saved!"
+			}
 		case event.Type == termbox.EventKey && event.Key == termbox.KeyEsc:
 			e.cursor = 0
 		case event.Type == termbox.EventKey && event.Key == termbox.KeyEnter:
@@ -128,12 +137,16 @@ func (e *Editor) Edit() error {
 		default:
 			log.Printf("unhandled event: %#v", event)
 		}
+		if clearMessage {
+			e.message = ""
+		}
 	}
 }
 
 func (e *Editor) frame(project *project.Project) termbox.Event {
 	termbox.Clear(termbox.ColorBlack, termbox.ColorBlack)
 	project.Render(e)
+	e.RenderMessage()
 	termbox.Sync()
 	return termbox.PollEvent()
 }
@@ -182,6 +195,12 @@ func (e *Editor) RenderArm(x, y, len int) {
 	for i := 0; i < len; i++ {
 		termbox.SetCell(x, y+i, '|', termbox.ColorWhite, termbox.ColorBlack)
 	}
+}
+
+func (e *Editor) RenderMessage() {
+	l := len(e.message)
+	w, h := termbox.Size()
+	printAt(0, h-1, e.message+strings.Repeat(" ", w-l))
 }
 
 func printAt(x, y int, msg string) {
