@@ -134,7 +134,7 @@ func (p *Project) RunCompaction() int {
 	}
 
 	if firstEmpty == len(p.items) {
-		return -1
+		return len(p.items) - 1
 	}
 
 	p.items[firstEmpty] = p.items[len(p.items)-1]

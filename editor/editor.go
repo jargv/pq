@@ -99,6 +99,7 @@ func (e *Editor) Edit() error {
 				dir = path.Dir(dir)
 			}
 			e.current = 0
+			e.cursor = 0
 			e.Open(dir)
 		case event.Type == termbox.EventKey && event.Key == termbox.KeyEsc:
 			e.cursor = 0
@@ -112,6 +113,7 @@ func (e *Editor) Edit() error {
 			if !e.isDir {
 				e.Project.Clear(0)
 				e.current = 1
+				e.cursor = 0
 				continue
 			}
 
