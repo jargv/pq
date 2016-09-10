@@ -1,8 +1,12 @@
 package project
 
 import (
+	"fmt"
 	logpkg "log"
 	"os"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 var log *logpkg.Logger
@@ -23,17 +27,50 @@ type Project struct {
 func New(taskStrings []string) *Project {
 	tasks := make([]*Task, len(taskStrings))
 	for i, str := range taskStrings {
-		tasks[i] = &Task{Title: str}
+		parts := strings.SplitN(str, ":", 2)
+		title := str
+		priority := -1
+		if len(parts) == 2 {
+			var err error
+			priority, err = strconv.Atoi(parts[0])
+			if err != nil {
+				log.Printf("err: %#v", err)
+				priority = -1
+			} else {
+				title = parts[1]
+			}
+		}
+
+		task := &Task{
+			Title:     title,
+			fileOrder: i,
+		}
+		if priority == -1 {
+			task.priority = i
+		} else {
+			task.priority = priority
+		}
+		tasks[i] = task
 	}
+
+	sort.Sort(byPriority(tasks))
 	return &Project{
 		tasks: tasks,
 	}
 }
 
 func (p *Project) TaskStrings() []string {
+	//update the priorities from the positions
+	for priority, task := range p.tasks {
+		task.priority = priority
+	}
+
+	fileOrderTasks := append([]*Task(nil), p.tasks...)
+	sort.Sort(byFileOrder(fileOrderTasks))
+
 	taskStrings := make([]string, len(p.tasks))
-	for i, task := range p.tasks {
-		taskStrings[i] = task.Title
+	for i, task := range fileOrderTasks {
+		taskStrings[i] = fmt.Sprintf("%d:%s", task.priority, task.Title)
 	}
 	return taskStrings
 }
@@ -48,6 +85,7 @@ func (p *Project) NTasks() int {
 
 func (p *Project) New() *Task {
 	task := &Task{}
+	task.fileOrder = -1
 	p.tasks = append(p.tasks, task)
 	return task
 }
