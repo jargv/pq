@@ -17,50 +17,50 @@ type Renderer interface {
 }
 
 type Project struct {
-	items []string
+	tasks []*Task
 }
 
-func New(items []string) *Project {
+func New(taskStrings []string) *Project {
+	tasks := make([]*Task, len(taskStrings))
+	for i, str := range taskStrings {
+		tasks[i] = &Task{Title: str}
+	}
 	return &Project{
-		items: items,
+		tasks: tasks,
 	}
 }
 
-func (p *Project) Items() []string {
-	items := p.items
-	l := len(items)
-	return items[:l:l]
+func (p *Project) TaskStrings() []string {
+	taskStrings := make([]string, len(p.tasks))
+	for i, task := range p.tasks {
+		taskStrings[i] = task.Title
+	}
+	return taskStrings
 }
 
-func (p *Project) Set(i int, s string) {
-	p.items[i] = s
-}
-
-func (p *Project) Get(i int) string {
-	return p.items[i]
+func (p *Project) Task(i int) *Task {
+	return p.tasks[i]
 }
 
 func (p *Project) NTasks() int {
-	return len(p.items)
+	return len(p.tasks)
 }
 
-func (p *Project) Clear(idx int) {
-	p.items[idx] = ""
-}
-
-func (p *Project) New() {
-	p.items = append(p.items, "")
+func (p *Project) New() *Task {
+	task := &Task{}
+	p.tasks = append(p.tasks, task)
+	return task
 }
 
 func (p *Project) PriorityUp(idx int) int {
 	parent := (idx - 1) / 2
-	tmp := p.items[idx]
-	if tmp == "" {
+	tmp := p.tasks[idx]
+	if tmp.IsEmpty() {
 		return -1
 	}
-	p.items[idx] = p.items[parent]
-	p.items[parent] = tmp
-	if p.items[idx] == "" {
+	p.tasks[idx] = p.tasks[parent]
+	p.tasks[parent] = tmp
+	if p.tasks[idx].IsEmpty() {
 		return idx*2 + 1
 	} else {
 		return parent
@@ -73,14 +73,14 @@ func (p *Project) Render(renderer Renderer) {
 
 	var visit func(int, int) int
 	visit = func(idx, tier int) int {
-		if idx >= len(p.items) {
+		if idx >= len(p.tasks) {
 			return -1
 		}
 
 		armStart := visit(idx*2+1, tier+1)
 
 		x := offsets[tier] + tier
-		width := len(p.items[idx])
+		width := len(p.tasks[idx].Title)
 		if tier+1 < len(offsets) {
 			width = offsets[tier+1] - offsets[tier]
 		}
@@ -89,10 +89,10 @@ func (p *Project) Render(renderer Renderer) {
 		if armStart >= 0 {
 			pad = width
 		} else {
-			pad = len(p.items[idx])
+			pad = len(p.tasks[idx].Title)
 		}
 
-		renderer.RenderLabel(idx, x, y, pad, p.items[idx])
+		renderer.RenderLabel(idx, x, y, pad, p.tasks[idx].Title)
 		renderY := y
 		y += 1
 
@@ -116,37 +116,37 @@ func (p *Project) Render(renderer Renderer) {
 }
 
 func (p *Project) RunCompaction() int {
-	if len(p.items) == 0 {
+	if len(p.tasks) == 0 {
 		return -1
 	}
 
 	//just drop any spaces at the end
-	for len(p.items) > 0 && p.items[len(p.items)-1] == "" {
-		p.items = p.items[:len(p.items)-1]
+	for len(p.tasks) > 0 && p.tasks[len(p.tasks)-1].Title == "" {
+		p.tasks = p.tasks[:len(p.tasks)-1]
 	}
 
 	//now find the first space
 	firstEmpty := 0
-	for ; firstEmpty < len(p.items); firstEmpty++ {
-		if p.items[firstEmpty] == "" {
+	for ; firstEmpty < len(p.tasks); firstEmpty++ {
+		if p.tasks[firstEmpty].IsEmpty() {
 			break
 		}
 	}
 
-	if firstEmpty == len(p.items) {
-		return len(p.items) - 1
+	if firstEmpty == len(p.tasks) {
+		return len(p.tasks) - 1
 	}
 
-	p.items[firstEmpty] = p.items[len(p.items)-1]
-	p.items = p.items[:len(p.items)-1]
+	p.tasks[firstEmpty] = p.tasks[len(p.tasks)-1]
+	p.tasks = p.tasks[:len(p.tasks)-1]
 	cursor := firstEmpty
 
 	//drop any new spaces
-	for p.items[len(p.items)-1] == "" {
-		p.items = p.items[:len(p.items)-1]
+	for p.tasks[len(p.tasks)-1].IsEmpty() {
+		p.tasks = p.tasks[:len(p.tasks)-1]
 	}
 
-	if cursor >= len(p.items) {
+	if cursor >= len(p.tasks) {
 		cursor = 0
 	}
 
@@ -160,17 +160,17 @@ func (p *Project) computeOffsets() []int {
 	for i := 0; ; i++ {
 		count := 1 << uint(i)
 		last := false
-		if count+start >= len(p.items) {
-			count = len(p.items) - start
+		if count+start >= len(p.tasks) {
+			count = len(p.tasks) - start
 			last = true
 		}
 
 		end := start + count
 
 		width := 0
-		for _, word := range p.items[start:end] {
-			if len(word) > width {
-				width = len(word)
+		for _, task := range p.tasks[start:end] {
+			if len(task.Title) > width {
+				width = len(task.Title)
 			}
 		}
 		offsets = append(offsets, total)

@@ -43,7 +43,7 @@ func (e *Editor) Edit() error {
 				e.cursor = 0
 			}
 		case event.Type == termbox.EventKey && event.Ch == 'l':
-			if 0 < e.cursor && e.cursor < len(e.Project.Get(e.current)) {
+			if 0 < e.cursor && e.cursor < e.Project.Task(e.current).Len() {
 				e.cursor += 1
 			} else {
 				e.moveCurrent(e.current*2 + 1)
@@ -56,19 +56,17 @@ func (e *Editor) Edit() error {
 			e.moveCurrent(e.current - 1)
 			e.cursor = 0
 		case event.Type == termbox.EventKey && event.Ch == 'A':
-			e.cursor = len(e.Project.Get(e.current))
+			e.cursor = e.Project.Task(e.current).Len()
 			e.edit()
 		case event.Type == termbox.EventKey && event.Ch == 'i':
 			e.edit()
 		case event.Type == termbox.EventKey && event.Ch == 'D':
-			item := e.Project.Get(e.current)
-			item = item[:e.cursor]
-			e.Project.Set(e.current, item)
+			task := e.Project.Task(e.current)
+			task.Title = task.Title[:e.cursor]
 			e.moveCurrent(e.current*2 + 1)
 		case event.Type == termbox.EventKey && event.Ch == 'C':
-			item := e.Project.Get(e.current)
-			item = item[:e.cursor]
-			e.Project.Set(e.current, item)
+			task := e.Project.Task(e.current)
+			task.Title = task.Title[:e.cursor]
 			e.moveCurrent(e.current*2 + 1)
 			e.edit()
 		case event.Type == termbox.EventKey && event.Ch == 'J':
@@ -80,19 +78,19 @@ func (e *Editor) Edit() error {
 			e.moveCurrent(e.Project.NTasks() - 1)
 			e.edit()
 		case event.Type == termbox.EventKey && event.Ch == 'w':
-			item := e.Project.Get(e.current)
-			for ; e.cursor < len(item); e.cursor++ {
-				if item[e.cursor] == ' ' {
+			task := e.Project.Task(e.current)
+			for ; e.cursor < task.Len(); e.cursor++ {
+				if task.Title[e.cursor] == ' ' {
 					e.cursor++
 					break
 				}
 			}
 		case event.Type == termbox.EventKey && event.Ch == 'b':
-			item := e.Project.Get(e.current)
+			task := e.Project.Task(e.current)
 			if e.cursor > 0 {
 				e.cursor--
 			}
-			for e.cursor > 0 && item[e.cursor-1] != ' ' {
+			for e.cursor > 0 && task.Title[e.cursor-1] != ' ' {
 				e.cursor--
 			}
 		case event.Type == termbox.EventKey && event.Ch == '-':
@@ -120,14 +118,14 @@ func (e *Editor) Edit() error {
 			}
 
 			if !e.isDir {
-				e.Project.Clear(0)
+				e.Project.Task(0).Clear()
 				e.current = 1
 				e.cursor = 0
 				continue
 			}
 
 			dir := strings.TrimSuffix(e.filename, ".index")
-			path := path.Join(dir, e.Project.Get(e.current))
+			path := path.Join(dir, e.Project.Task(e.current).Title)
 			e.current = 0
 			e.cursor = 0
 			err := e.Open(path)
@@ -153,9 +151,8 @@ func (e *Editor) frame(project *project.Project) termbox.Event {
 
 func (e *Editor) edit() {
 	addChar := func(c string) {
-		item := e.Project.Get(e.current)
-		new := item[:e.cursor] + c + item[e.cursor:]
-		e.Project.Set(e.current, new)
+		task := e.Project.Task(e.current)
+		task.Title = task.Title[:e.cursor] + c + task.Title[e.cursor:]
 		e.cursor += 1
 	}
 
@@ -166,10 +163,9 @@ func (e *Editor) edit() {
 		case event.Type == termbox.EventKey && event.Key == termbox.KeySpace:
 			addChar(string(" "))
 		case event.Type == termbox.EventKey && event.Key == termbox.KeyBackspace2:
-			item := e.Project.Get(e.current)
-			if len(item) != 0 {
-				new := item[:e.cursor-1] + item[e.cursor:]
-				e.Project.Set(e.current, new)
+			task := e.Project.Task(e.current)
+			if !task.IsEmpty() {
+				task.Title = task.Title[:e.cursor-1] + task.Title[e.cursor:]
 				e.cursor -= 1
 			}
 		case event.Type == termbox.EventKey && event.Key == termbox.KeyEsc:

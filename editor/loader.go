@@ -39,9 +39,9 @@ func (e *loader) OpenTopLevel() error {
 			break
 		}
 
-		task := e.Project.Get(0)
+		task := e.Project.Task(0)
 		dir := path.Dir(e.filename)
-		path := path.Join(dir, task)
+		path := path.Join(dir, task.Title)
 		err = e.Open(path)
 	}
 
@@ -91,6 +91,6 @@ func (e *loader) Save() error {
 	if e.Project == nil {
 		return nil
 	}
-	items := e.Project.Items()
+	items := e.Project.TaskStrings()
 	return ioutil.WriteFile(e.filename, []byte(strings.Join(items, "\n")), 0777)
 }
